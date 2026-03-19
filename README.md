@@ -6,15 +6,16 @@
 
 ## 🎯 Problem Statement
 
-Digital fraud is evolving rapidly with sophisticated fake websites, phishing domains, and malicious apps that closely mimic legitimate brands. Traditional detection methods are reactive and rely on user reports, leaving a critical gap in proactive protection.
+Digital fraud continues to evolve with phishing sites and brand impersonation. This repository provides a multi-modal detection system that combines machine learning, local LLM analysis, and visual similarity to provide fast, explainable verdicts.
+
 
 ## 💡 Our Solution
 
-A **hybrid AI system** that combines three powerful detection methods:
+A **multi-modal AI system** that combines three powerful detection methods:
 
-1. **🤖 ML-Based Phishing Detection** - Advanced feature engineering + LGBM
-2. **🧠 LLM Content Analysis** - Contextual understanding via Mistral
-3. **👁️ Computer Vision Similarity** - Brand impersonation detection
+1. **🤖 ML-Based Phishing Detection** - feature engineering + LightGBM (phishing_lgbm.pkl).
+2. **🧠 LLM Content Analysis** - local LLM via Ollama (Mistral) for contextual risk reasoning.
+3. **👁️ Computer Vision Similarity** - screenshot capture (Selenium) + image hashing + OCR + fuzzy brand matching.
 
 ## 🏗️ System Architecture
 
@@ -105,34 +106,7 @@ flowchart TB
 </details>
 <hr style="border:1px solid #ccc; margin:30px 0;">
 
-```mermaid
-graph TB
-    subgraph Frontend
-        A[Streamlit UI]
-    end
-    
-    subgraph AI_Models
-        B[LightGBM]
-        C[Mistral LLM]
-        D[Computer Vision]
-    end
-    
-    subgraph Tools
-        E[Selenium]
-        F[OpenCV]
-        G[SHAP]
-        H[BeautifulSoup]
-    end
-    
-    A --> B
-    A --> C
-    A --> D
-    B --> G
-    C --> H
-    D --> F
-    D --> E
-```
-<hr style="border:1px solid #ccc; margin:30px 0;">
+
 
 ```mermaid
 flowchart TD
@@ -163,36 +137,6 @@ flowchart TD
 ```
 <hr style="border:1px solid #ccc; margin:30px 0;">
 
-```mermaid
-sequenceDiagram
-    actor User
-    participant StreamlitUI as Streamlit UI
-    participant Validator
-    participant ML as ML Module
-    participant LLM as LLM Module
-    participant CV as CV Module
-    participant Ensemble
-
-    User ->> StreamlitUI: Submit URL
-    StreamlitUI ->> Validator: Validate & normalize
-    Validator -->> StreamlitUI: ✅ Valid URL
-
-    par Parallel Analysis
-        StreamlitUI ->> ML: Extract features
-        ML -->> StreamlitUI: Legitimacy score + SHAP
-
-        StreamlitUI ->> LLM: Scrape & analyze content
-        LLM -->> StreamlitUI: Risk assessment + evidence
-
-        StreamlitUI ->> CV: Screenshot & compare
-        CV -->> StreamlitUI: Similarity score + breakdown
-    end
-
-    StreamlitUI ->> Ensemble: Combine all scores
-    Ensemble -->> StreamlitUI: Final verdict + weights
-
-    StreamlitUI -->> User: Display comprehensive results
-```
 
 ### Multi-Modal Analysis Pipeline:
 - **Structural Analysis**: 30+ URL features, DNS patterns, domain characteristics
@@ -201,9 +145,16 @@ sequenceDiagram
 
 ## 🎬 Demo Video & Presentation Slides
 
-[![Demo Video](https://img.youtube.com/vi/2m9npI4JRYI/0.jpg)](https://youtu.be/2m9npI4JRYI)
 
-[View PDF Presentation](https://drive.google.com/file/d/1VNHsxop0AM7URDV3iW016vqW79Jq68_5/view?usp=sharing)
+<p align="center">
+  <a href="https://youtu.be/fPXwLn6FBj4?t=180">
+    <img src="https://img.youtube.com/vi/cigAVGhOl-0/0.jpg" alt="Demo Video" />
+  </a>
+</p>
+
+
+
+[View PDF Presentation](https://drive.google.com/file/d/1ud8WKoPKXwB3ZCWgTf8R2BDHT2CIhQzu/view?usp=sharing)
 
 **Watch our complete system demonstration and technical walkthrough!**
 
@@ -231,6 +182,7 @@ sequenceDiagram
 ## 📁 Project Structure
 
 ```
+<<<<<<< HEAD
 spot-the-fake/
 ├── app1.py                 # Website similarity analysis
 ├── app2.py                 # ML + LLM phishing detection  
@@ -244,6 +196,27 @@ spot-the-fake/
 ├── requirements.txt        # Python dependencies
 ├── extension/              # Browser extension (live risk badge)
 └── README.md              # This file
+=======
+spot-the-fake--main/
+├── `app1.py`                 # Visual similarity (website screenshot analysis)
+├── `app2.py`                 # ML + LLM phishing classification utilities
+├── `everything.py`          # Streamlit unified interface
+├── `phishing_lgbm.pkl`      # Pre-trained LightGBM model
+├── `dataset_phishing.csv`   # Training / reference data
+├── `backend/`
+│   ├── `app.py`             # Backend API entrypoint
+│   ├── `models/loader.py`   # Model loader used by backend
+│   └── `requirements.txt`
+├── `frontend/`               # React frontend (optional)
+│   ├── `package.json`
+│   └── `src/`
+├── `Brands/`                 # Reference brand screenshots
+├── `User/`                   # Captured user screenshots
+├── `modules/`                # Helper modules (e.g., `scam-detector.py`)
+├── `requirements.txt`
+└── `README.md`
+
+>>>>>>> b702de69782c00e651ffacb0feb13eb1475af96b
 ```
 
 ## Browser Extension
@@ -306,9 +279,11 @@ Behavior:
 ## 🛠️ Installation & Setup
 
 ### Prerequisites
-- Python 3.8+
+
+- Python 3.8+ on Windows
 - Chrome browser (for Selenium)
-- Tesseract OCR
+- Tesseract OCR installed and on PATH
+- Ollama installed and Mistral model pulled (for local LLM)
 
 ### Quick Start
 ```bash
@@ -318,6 +293,11 @@ cd spot-the-fake
 
 # Install dependencies
 pip install -r requirements.txt
+pip install -r backend/requirements.txt
+
+# Install frontend dependencies:
+cd frontend
+npm install
 
 # Configure Groq API key (for LLM analysis)
 # Option 1: create .env from .env.example (recommended)
@@ -335,13 +315,19 @@ $env:GROQ_MODEL="llama-3.1-8b-instant"
 # macOS: brew install tesseract
 # Linux: sudo apt install tesseract-ocr
 
-# Run the application
-streamlit run everything.py
+# Run the application (backend)
+python backend/app.py
+
+# Run frontend (optional development):
+cd frontend
+npm run dev
+
+
 ```
 
 ### Dependencies
 ```txt
-streamlit
+
 selenium
 scikit-learn
 lightgbm
@@ -357,32 +343,37 @@ groq
 matplotlib
 numpy
 pandas
+catboost
+xgboost
+Flask
+flask-cors
 ```
 
 ## 🎮 Usage
 
 ### Web Interface
-1. Launch the Streamlit app: `streamlit run everything.py`
-2. Enter a suspicious URL in the input field
+1. Launch the  app through react frontend: `cd frontend/ ; npm start`
+2. Click Live Demo then Enter a suspicious URL in the input field
 3. Get instant analysis with:
    - ML confidence scores
    - LLM contextual analysis
    - Visual similarity results
    - Combined final verdict
 
-### API Usage (Command Line)
-```python
-from app2 import classify_content
-from app1 import check_website
+### Modules & Responsibilities
 
-# Analyze URL for phishing
-result = classify_content("https://suspicious-site.com")
-print(f"Verdict: {result['final_verdict']}")
+app2.py — Extracts URL features (length, special chars, TLD), runs LightGBM (phishing_lgbm.pkl), returns calibrated probabilities and SHAP explanations.
 
-# Check visual similarity
-similarity = check_website("https://fake-paypal.com")
-print(f"Similarity Score: {similarity['score']}")
-```
+app1.py — Captures page screenshots (Selenium), computes pHash/dHash and color/text similarity, OCR with Tesseract, fuzzy brand matching using RapidFuzz.
+
+everything.py — (optional) Streamlit front end that runs modules in parallel, normalizes scores, performs weighted ensemble, and displays SHAP/visual explainability for quick test checks.
+
+frontend - Sleek Interactive React UI and Final Verdict Dashboard
+
+backend/models/loader.py — Centralized model loading utilities used by the backend service.
+
+modules/scam-detector.py — Utility functions used across modules (feature extraction, text cleaning, hashing helpers).
+
 
 ## 🔬 Technical Deep Dive
 
@@ -411,11 +402,20 @@ print(f"Similarity Score: {similarity['score']}")
 - **Content Analysis**: Natural language fraud indicators
 - **Real-time Processing**: < 30 seconds total analysis time
 
-### Robustness Features:
-- DNS/HTTP validation before analysis
-- Screenshot retry mechanisms
-- Graceful degradation for missing modules
-- Comprehensive error handling
+### Ensemble & Scoring
+
+Score normalization followed by weighted fusion:
+
+- ML score weight: 0.5
+- LLM score weight: 0.3
+- CV score weight: 0.2
+- Adaptive thresholding with final verdict: final_score >= 0.5 → LEGITIMATE, else PHISHING
+
+Explainability outputs:
+
+- SHAP feature importances (ML)
+- LLM natural language reasoning + evidence
+- Visual similarity breakdown (hash, color, OCR overlap)
 
 ## 🎨 User Experience
 
