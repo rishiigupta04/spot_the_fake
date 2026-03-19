@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spot the Fake Extension Settings</title>
+    <style>
+      body {
+        font-family: Segoe UI, Arial, sans-serif;
+        margin: 20px;
+        max-width: 680px;
+      }
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 600;
+      }
+      input {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+      }
+      button {
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid #0f172a;
+        background: #0f172a;
+        color: #fff;
+        cursor: pointer;
+      }
+      #status {
+        margin-top: 10px;
+        color: #0369a1;
+      }
+      code {
+        background: #f1f5f9;
+        padding: 1px 4px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Spot the Fake - Extension Settings</h2>
+    <p>
+      Use your backend URL (for example <code>http://localhost:5000</code>) and cache TTL.
+    </p>
+
+    <label for="apiBaseUrl">Backend API Base URL</label>
+    <input id="apiBaseUrl" type="text" placeholder="http://localhost:5000" />
+
+    <label for="cacheTtlMs">Cache TTL (milliseconds)</label>
+    <input id="cacheTtlMs" type="number" min="1000" step="1000" placeholder="300000" />
+
+    <button id="saveButton" type="button">Save Settings</button>
+    <div id="status"></div>
+
+    <script src="options.js"></script>
+  </body>
+</html>

@@ -7,6 +7,7 @@ import CompareArrowsIcon from '@mui/icons-material/CompareArrows'
 import CloseIcon from '@mui/icons-material/Close'
 import { motion } from 'framer-motion'
 import SimilarityExplainModal from './SimilarityExplainModal'
+import { buildStaticAssetUrl } from '../../config/api'
 
 export default function SimilarityAnalysis({ simResult, simLoading, simError }) {
   const [openImg, setOpenImg] = useState(false)
@@ -25,11 +26,19 @@ export default function SimilarityAnalysis({ simResult, simLoading, simError }) 
   const result = simResult?.result ?? simResult
   const score = result?.score ?? null
   const details = result?.details ?? {}
+  const assessment = result?.assessment || details?.assessment || null
+  const confidence = typeof result?.confidence === 'number' ? result.confidence : details?.confidence
+  const ocr = details?.ocr ?? null
+
+  const simErrorMessage =
+    typeof simError === 'string'
+      ? simError
+      : simError?.error?.message || simError?.message || null
 
   // Ensure score is a number and round to 2 decimals to avoid floating point issues
   const numericScore = score !== null ? Number(Number(score).toFixed(2)) : null;
 
-  // Unify thresholds for level and progress bar color
+  // Unify thresholds for fallback level and progress bar color
   const level = numericScore == null
     ? null
     : numericScore >= 0.9
@@ -40,20 +49,14 @@ export default function SimilarityAnalysis({ simResult, simLoading, simError }) 
           ? 'Moderate'
           : 'Low'
 
-  const levelColor =
-    level === 'Legit'
-      ? 'primary'
-      : level === 'High'
-        ? 'error'
-        : level === 'Moderate'
-          ? 'warning'
-          : 'success'
+  const refFile = result?.reference_image?.split(/[/\\]/).pop()
+  const userFile = result?.user_screenshot?.split(/[/\\]/).pop()
 
-  const refSrc = result?.reference_image ? `http://localhost:5000/static/brands/${result.reference_image.split(/[/\\]/).pop()}` : null
-  const userSrc = result?.user_screenshot ? `http://localhost:5000/static/user/${result.user_screenshot.split(/[/\\]/).pop()}` : null
-
-  // Debug output for troubleshooting
-  console.log('SimilarityAnalysis: numericScore', numericScore, 'level', level);
+  const refSrc = result?.reference_image_url || buildStaticAssetUrl('brands', refFile)
+  const userSrc = result?.user_screenshot_url || buildStaticAssetUrl('user', userFile)
+  const breakdownKeys = ['image', 'color', 'text', 'structure']
+  const riskLevel = (assessment?.risk_level || '').toLowerCase()
+  const riskChipLabel = assessment?.risk_level ? `Risk: ${assessment.risk_level}` : null
 
   return (
     <Paper
@@ -82,6 +85,13 @@ export default function SimilarityAnalysis({ simResult, simLoading, simError }) 
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {riskChipLabel && (
+            <Chip
+              label={riskChipLabel}
+              size="small"
+              color={riskLevel === 'critical' || riskLevel === 'high' ? 'error' : riskLevel === 'medium' ? 'warning' : 'success'}
+            />
+          )}
           <Chip
             icon={<CompareArrowsIcon />}
             label={level || 'No Data'}
@@ -107,10 +117,25 @@ export default function SimilarityAnalysis({ simResult, simLoading, simError }) 
       {/* Content */}
       <Box sx={{ mt: 2 }}>
         {simLoading && <Typography>Checking similarity...</Typography>}
-        {simError && <Typography color="error">{String(simError)}</Typography>}
+        {simErrorMessage && <Typography color="error">{simErrorMessage}</Typography>}
 
         {numericScore !== null && (
           <Box>
+            {assessment?.headline && (
+              <Box sx={{ mb: 1.25 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{assessment.headline}</Typography>
+                {assessment?.summary && <Typography variant="body2" sx={{ opacity: 0.85 }}>{assessment.summary}</Typography>}
+                <Typography variant="caption" sx={{ opacity: 0.75 }}>
+                  {assessment?.domain_alignment === false
+                    ? 'Domain-brand alignment: mismatch'
+                    : assessment?.domain_alignment === true
+                      ? 'Domain-brand alignment: matched'
+                      : 'Domain-brand alignment: not available'}
+                  {typeof confidence === 'number' && ` | Similarity confidence: ${Math.round(confidence * 100)}%`}
+                </Typography>
+              </Box>
+            )}
+
             {/* Overall score */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
               <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
@@ -142,11 +167,20 @@ export default function SimilarityAnalysis({ simResult, simLoading, simError }) 
                   }}
                 />
                 <Typography variant="body2" sx={{ mt:1, opacity: 0.85 }}>
-                  {level === 'Legit' && '✅ This is likely the original brand website (very high similarity).'}
-                  {level === 'High' && '⚠️ High resemblance — may be impersonating a brand.'}
-                  {level === 'Moderate' && '🔶 Moderate resemblance — partial match detected.'}
-                  {level === 'Low' && '✅ Low resemblance — unlikely to be impersonation.'}
+                  {assessment?.summary || (
+                    <>
+                      {level === 'Legit' && '✅ This is likely the original brand website (very high similarity).'}
+                      {level === 'High' && '⚠️ High resemblance — may be impersonating a brand.'}
+                      {level === 'Moderate' && '🔶 Moderate resemblance — partial match detected.'}
+                      {level === 'Low' && '✅ Low resemblance — unlikely to be impersonation.'}
+                    </>
+                  )}
                 </Typography>
+                {numericScore >= 0.65 && (
+                  <Typography variant="caption" sx={{ display: 'block', mt: 0.75, opacity: 0.78 }}>
+                    Final verdict checks domain-brand alignment before treating high similarity as legitimate.
+                  </Typography>
+                )}
               </Box>
             </Box>
             {/* Breakdown */}
@@ -154,7 +188,7 @@ export default function SimilarityAnalysis({ simResult, simLoading, simError }) 
               Similarity Breakdown
             </Typography>
             <Grid container spacing={2}>
-              {['image','color','text'].map((k)=> (
+              {breakdownKeys.map((k)=> (
                 <Grid item xs={12} sm={4} key={k}>
                   <Paper
                     sx={{
@@ -191,6 +225,32 @@ export default function SimilarityAnalysis({ simResult, simLoading, simError }) 
                  </Grid>
                ))}
              </Grid>
+
+             {ocr && (
+               <Box sx={{ mt: 1.5 }}>
+                 <Typography variant="caption" sx={{ opacity: 0.78 }}>
+                   OCR status: {ocr.ocr_available ? 'available' : 'not available'} | ref text: {ocr.ref_text_len ?? 0} chars | submitted text: {ocr.target_text_len ?? 0} chars
+                 </Typography>
+               </Box>
+             )}
+
+             {Array.isArray(assessment?.reasons) && assessment.reasons.length > 0 && (
+               <Box sx={{ mt: 1.5 }}>
+                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Why this result?</Typography>
+                 <Typography variant="body2" sx={{ opacity: 0.85, whiteSpace: 'pre-line' }}>
+                   {assessment.reasons.slice(0, 3).map((r) => `- ${r}`).join('\n')}
+                 </Typography>
+               </Box>
+             )}
+
+             {Array.isArray(assessment?.recommendations) && assessment.recommendations.length > 0 && (
+               <Box sx={{ mt: 1.5 }}>
+                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Recommended actions</Typography>
+                 <Typography variant="body2" sx={{ opacity: 0.85, whiteSpace: 'pre-line' }}>
+                   {assessment.recommendations.slice(0, 3).map((r) => `- ${r}`).join('\n')}
+                 </Typography>
+               </Box>
+             )}
 
              {/* Screenshots */}
              <Typography variant="subtitle2" sx={{ mt: 3, mb: 1, fontWeight: 600 }}>
@@ -232,7 +292,7 @@ export default function SimilarityAnalysis({ simResult, simLoading, simError }) 
           </Box>
         )}
 
-        {!simLoading && score === null && !simError && (
+        {!simLoading && score === null && !simErrorMessage && (
           <Typography variant="body2" sx={{ opacity: 0.8 }}>
             No similarity analysis available. Click Analyze to run checks.
           </Typography>

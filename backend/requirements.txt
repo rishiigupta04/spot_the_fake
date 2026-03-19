@@ -11,8 +11,8 @@ imagehash
 pytesseract
 beautifulsoup4
 rapidfuzz
-ollama
+groq
+python-dotenv
 matplotlib
 shap
 selenium
-

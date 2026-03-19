@@ -213,6 +213,10 @@ sequenceDiagram
 ### ✨ Core Capabilities
 - **Real-time Website Scanning** - Instant fraud detection
 - **Brand Impersonation Detection** - Visual similarity analysis
+- **Image Upload Similarity Check** - Upload a screenshot and compare it against brand references
+- **Browser Live Risk Badge** - Lightweight per-site risk signal while browsing
+- **Watchlist Alerts** - Track key brands/domains and flag impersonation-like scans
+- **History + Search Dashboard** - Local persistence for previous scans and quick filtering
 - **Explainable AI** - SHAP plots + natural language reasoning
 - **Multi-modal Fusion** - Weighted ensemble for robust decisions
 
@@ -238,8 +242,66 @@ spot-the-fake/
 │   └── ...
 ├── User/                   # User screenshot storage
 ├── requirements.txt        # Python dependencies
+├── extension/              # Browser extension (live risk badge)
 └── README.md              # This file
 ```
+
+## Browser Extension
+
+See `extension/README.md` for loading and configuration steps.
+
+## Deploy on Vercel (Frontend + Backend)
+
+This repository is now configured for single-project Vercel hosting using:
+- `frontend/` as static Vite app
+- `backend/app.py` as Python serverless API
+- root `vercel.json` routing
+
+### 1) Prerequisites
+- Vercel account and Vercel CLI (`npm i -g vercel`) or GitHub import in Vercel dashboard
+- `GROQ_API_KEY` ready
+
+### 2) Deploy
+
+```bash
+vercel
+```
+
+For production:
+
+```bash
+vercel --prod
+```
+
+### 3) Set environment variables in Vercel Project Settings
+- `GROQ_API_KEY` = your Groq key
+- `GROQ_MODEL` = optional model override (example: `llama-3.1-8b-instant`)
+
+### 4) Verify endpoints after deploy
+- `GET /health`
+- `POST /predict`
+- `POST /predict-lite`
+- `POST /similarity-upload`
+
+### Notes for serverless runtime
+- Uploaded/user screenshots are stored in temp storage (`/tmp`) and are ephemeral.
+- Brand references in `Brands/` are bundled read-only and available for matching.
+- Selenium-based full-page screenshot similarity for remote URLs may be limited in serverless environments; image upload flow (`/similarity-upload`) is the reliable path on Vercel.
+
+### Why not store runtime images in repo `assets/`?
+- Repo assets are build-time/static files and are read-only in hosted serverless runtimes.
+- Runtime writes should use temp storage or external object/image hosting.
+
+### Cloudinary (recommended for hosted screenshot URLs)
+If these env vars are set, similarity results will include CDN URLs:
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+
+Behavior:
+- `user_screenshot_url` is uploaded per analysis run.
+- `reference_image_url` is uploaded and cached in-memory per backend instance.
+- Frontend automatically prefers these URLs and falls back to local `/static/...` routes when Cloudinary is not configured.
 
 ## 🛠️ Installation & Setup
 
@@ -257,9 +319,16 @@ cd spot-the-fake
 # Install dependencies
 pip install -r requirements.txt
 
-# Install Ollama (for LLM analysis)
-# Visit: https://ollama.ai/download
-ollama pull mistral
+# Configure Groq API key (for LLM analysis)
+# Option 1: create .env from .env.example (recommended)
+# copy .env.example .env
+# edit .env and set GROQ_API_KEY
+
+# Option 2: set env vars in current PowerShell session
+# Windows PowerShell
+$env:GROQ_API_KEY="your_groq_api_key"
+# Optional: choose a model (default is llama-3.1-8b-instant)
+$env:GROQ_MODEL="llama-3.1-8b-instant"
 
 # Install Tesseract OCR
 # Windows: Download from GitHub releases
@@ -284,7 +353,7 @@ pytesseract
 beautifulsoup4
 rapidfuzz
 requests
-ollama
+groq
 matplotlib
 numpy
 pandas

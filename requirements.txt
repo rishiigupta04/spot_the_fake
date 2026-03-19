@@ -9,10 +9,11 @@ imagehash
 pytesseract
 beautifulsoup4
 rapidfuzz
-requests+
+requests
 
 
-ollama
+groq
+python-dotenv
 matplotlib
 numpy
 pandas

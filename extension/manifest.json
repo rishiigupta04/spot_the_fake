@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Spot the Fake Live Badge",
+  "description": "Real-time phishing risk badge for the current page.",
+  "version": "0.1.0",
+  "permissions": ["tabs", "storage"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "options.html",
+  "action": {
+    "default_title": "Spot the Fake"
+  }
+}

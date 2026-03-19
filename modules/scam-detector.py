@@ -1,8 +1,15 @@
 import requests
-import ollama
 from bs4 import BeautifulSoup
 import json
 import re
+import os
+
+try:
+    from groq import Groq
+except Exception:
+    Groq = None
+
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 
 def extract_main_content(html):
     """
@@ -52,9 +59,9 @@ def find_heuristic_explanations(text):
 
     return explanations
 
-def analyze_with_ollama(content, model_name="mistral"):
+def analyze_with_groq(content, model_name=None):
     """
-    Sends the extracted content to the local LLM via Ollama.
+    Sends the extracted content to Groq LLM API.
     Returns a verdict and the LLM's own reasoning.
     """
     system_prompt = """You are an expert cybersecurity analyst. Your task is to analyze the content of a website and determine if it is a scam, phishing attempt, or otherwise malicious.
@@ -77,19 +84,30 @@ def analyze_with_ollama(content, model_name="mistral"):
     - Anything you deem suspicious
     """
     
+    model_name = model_name or GROQ_MODEL
+
     try:
+        if Groq is None:
+            raise RuntimeError("groq SDK is not installed. Install with: pip install groq")
+
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            raise RuntimeError("GROQ_API_KEY is not set")
+
         user_message = f"Analyze this website content for scams:\n\n{content}"
-        response = ollama.chat(
+        client = Groq(api_key=api_key)
+        response = client.chat.completions.create(
             model=model_name,
             messages=[
                 {'role': 'system', 'content': system_prompt},
                 {'role': 'user', 'content': user_message}
             ],
-            options={'temperature': 0.1}
+            temperature=0.1,
+            response_format={"type": "json_object"},
         )
         
-        response_text = response['message']['content'].strip()
-        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        response_text = (response.choices[0].message.content or "").strip()
+        json_match = re.search(r'{.*}', response_text, re.DOTALL)
         if json_match:
             json_str = json_match.group()
             return json.loads(json_str)
@@ -99,8 +117,14 @@ def analyze_with_ollama(content, model_name="mistral"):
             return None
         
     except Exception as e:
-        print(f"Error with Ollama: {e}")
+        print(f"Error with Groq: {e}")
         return None
+
+
+def analyze_with_ollama(content, model_name="mistral"):
+    """Backward-compatible wrapper for older call sites."""
+    resolved_model = GROQ_MODEL if model_name == "mistral" else model_name
+    return analyze_with_groq(content, model_name=resolved_model)
 
 def main():
     """
@@ -130,7 +154,7 @@ def main():
     print("-"*60)
     print(main_text)
     print("-"*60)
-    llm_result = analyze_with_ollama(text_for_llm)
+    llm_result = analyze_with_groq(text_for_llm)
     heuristic_reasons = find_heuristic_explanations(full_text_for_heuristics)
     print("-"*60)
     print(llm_result)

@@ -61,7 +61,7 @@ def run_combined_app():
 
             # === MODULE 2: WEBSITE SIMILARITY ===
             st.subheader("🔍 Module 2: Website Similarity Analysis")
-            website_similarity_result = check_website(user_input)
+            website_similarity_result = check_website(user_input, notifier=st)
 
             similarity_score = None
             if isinstance(website_similarity_result, dict):

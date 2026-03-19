@@ -3,10 +3,67 @@ import { Paper, Typography, Box, LinearProgress, Chip } from '@mui/material'
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts'
 import { motion } from 'framer-motion'
 
-export default function FinalVerdict({ result, similarity }){
+const getHostname = (url) => {
+  try {
+    return new URL(url).hostname.toLowerCase()
+  } catch (_) {
+    return ''
+  }
+}
+
+const getSimilaritySignal = (similarityResult, sourceUrl) => {
+  const simPayload = similarityResult?.result ?? similarityResult
+  const score = typeof simPayload?.score === 'number' ? simPayload.score : null
+  if (score == null) {
+    return { legitimacyScore: null, label: 'No similarity signal' }
+  }
+
+  const brand = String(simPayload?.brand || '').toLowerCase()
+  const host = getHostname(sourceUrl)
+  const hostIncludesBrand = brand && host ? host.includes(brand) : false
+
+  let legitimacyScore
+  let label
+
+  if (score >= 0.9) {
+    if (hostIncludesBrand) {
+      legitimacyScore = 0.9
+      label = 'Very high similarity and domain matches brand pattern'
+    } else {
+      legitimacyScore = 0.1
+      label = 'Very high similarity with brand mismatch -> impersonation risk'
+    }
+  } else if (score >= 0.65) {
+    if (hostIncludesBrand) {
+      legitimacyScore = 0.6
+      label = 'High similarity on brand-aligned domain'
+    } else {
+      legitimacyScore = 0.2
+      label = 'High similarity with brand mismatch -> likely spoof'
+    }
+  } else if (score >= 0.3) {
+    legitimacyScore = 0.45
+    label = 'Moderate similarity, treat as caution signal'
+  } else {
+    legitimacyScore = 0.8
+    label = 'Low similarity to known brands'
+  }
+
+  return {
+    legitimacyScore,
+    label,
+    rawScore: score,
+    brand,
+    host,
+    hostIncludesBrand,
+  }
+}
+
+export default function FinalVerdict({ result, similarityResult }){
   if(!result) return null
   const lgbm = result.ml_confidence ?? 0
-  let similarityScore = similarity ?? null
+  const similaritySignal = getSimilaritySignal(similarityResult, result?.url)
+  const similarityScore = similaritySignal.legitimacyScore
 
   // Combine simple weighted score similar to everything.py (weights assumed)
   const weights = { lgbm: 0.5, llm: 0.3, similarity: similarityScore != null ? 0.2 : 0 }
@@ -26,7 +83,7 @@ export default function FinalVerdict({ result, similarity }){
   const finalPercent = Math.round(finalNumeric * 100)
 
   // Build chart data for contributions
-  const data = Object.keys(scores).map((k, idx) => ({ name: k, value: (normalized[k]||0) * 100 }))
+  const data = Object.keys(scores).map((k) => ({ name: k, value: (normalized[k]||0) * 100 }))
   const COLORS = ['#1976d2', '#81c784', '#ffb74d']
 
   const recommendation = final >= 0.5
@@ -90,6 +147,11 @@ export default function FinalVerdict({ result, similarity }){
               <Box sx={{ mt:2 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Action</Typography>
                 <Typography variant="body2" sx={{ opacity: 0.85 }}>{recommendation}</Typography>
+                {similaritySignal.rawScore != null && (
+                  <Typography variant="caption" sx={{ display: 'block', mt: 0.75, opacity: 0.85 }}>
+                    Similarity handling: {similaritySignal.label} (raw={Math.round(similaritySignal.rawScore * 100)}%)
+                  </Typography>
+                )}
               </Box>
             </Box>
           </Box>
