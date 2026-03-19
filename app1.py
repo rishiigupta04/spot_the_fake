@@ -1,13 +1,9 @@
 from PIL import Image
-import imagehash, cv2, numpy as np, pytesseract, re, os, time, base64
+import imagehash, cv2, numpy as np, pytesseract, re, os, time, base64, matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-try:
-    from selenium import webdriver
-    from selenium.webdriver.chrome.options import Options
-except Exception:
-    webdriver = None
-    Options = None
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from rapidfuzz import process
 from urllib.parse import urlparse
 import socket
@@ -198,10 +194,6 @@ def check_http(url: str, timeout=6) -> bool:
 # ---------- Selenium Screenshot ----------
 def capture_viewport_screenshot(url, save_path, width=1280, height=720, retries=1):
     """Viewport screenshot with timeouts + retries. Returns save_path or None."""
-    if webdriver is None or Options is None:
-        print("[WARN] Selenium not available in this runtime; screenshot capture skipped.")
-        return None
-
     options = Options()
     options.add_argument("--headless=new")
     options.add_argument("--disable-gpu")
@@ -593,12 +585,26 @@ def _notify_json(notifier, payload):
 
 
 def explain_score(details, weights, final_score, notifier=None):
-    keys = ["image", "color", "text"]
-    contributions = {k: details[k] * weights[i] for i, k in enumerate(keys)}
+    keys = ["image", "color", "text", "structure"]
+    available_keys = [k for k in keys if k in details]
+
+    if isinstance(weights, dict):
+        weight_map = {k: float(weights.get(k, 0.0)) for k in available_keys}
+    else:
+        # Backward-compatible for list/tuple weights from legacy calls.
+        weight_map = {
+            k: float(weights[i]) if i < len(weights) else 0.0
+            for i, k in enumerate(available_keys)
+        }
+
+    contributions = {k: details[k] * weight_map.get(k, 0.0) for k in available_keys}
 
     explanation = "\n--- Explainability ---\n"
-    for i, k in enumerate(keys):
-        explanation += f"{k.capitalize()} contribution: {contributions[k]:.3f} (raw={details[k]:.3f}, weight={weights[i]})\n"
+    for k in available_keys:
+        explanation += (
+            f"{k.capitalize()} contribution: {contributions[k]:.3f} "
+            f"(raw={details[k]:.3f}, weight={weight_map.get(k, 0.0):.3f})\n"
+        )
     explanation += f"Total Score: {final_score:.3f}\n"
 
     _notify(notifier, "markdown", f"```\n{explanation}\n```")

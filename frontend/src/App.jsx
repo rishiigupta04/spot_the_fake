@@ -405,7 +405,7 @@ export default function App() {
                           >
                             <FinalVerdict
                               result={result}
-                              similarityResult={simResult}
+                              similarity={simResult && simResult.score}
                             />
                           </Suspense>
                         </Paper>
@@ -416,7 +416,6 @@ export default function App() {
 
                <HistoryWatchlistPanel
                  history={history}
-                 setHistory={setHistory}
                  watchlist={watchlist}
                  setWatchlist={setWatchlist}
                />

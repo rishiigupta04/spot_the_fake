@@ -70,19 +70,6 @@ def _normalize_url(raw_value):
     return raw_value
 
 
-def _cloudinary_status():
-    has_cloud_name = bool(os.getenv("CLOUDINARY_CLOUD_NAME"))
-    has_api_key = bool(os.getenv("CLOUDINARY_API_KEY"))
-    has_api_secret = bool(os.getenv("CLOUDINARY_API_SECRET"))
-    configured = has_cloud_name and has_api_key and has_api_secret
-    return {
-        "configured": configured,
-        "cloud_name_set": has_cloud_name,
-        "api_key_set": has_api_key,
-        "api_secret_set": has_api_secret,
-    }
-
-
 @app.route("/health", methods=["GET"])
 def health():
     """Simple health check"""
@@ -94,7 +81,6 @@ def health():
         "loader": "ok" if _LOADER_ERROR is None else "error",
         "loader_error": None if _LOADER_ERROR is None else _LOADER_ERROR,
         "llm": llm_status,
-        "cloudinary": _cloudinary_status(),
         "user_folder": USER_FOLDER,
     })
 

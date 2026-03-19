@@ -9,14 +9,6 @@ export default function PhishingAnalysis({ result }) {
   const legitScore = Math.max(0, Math.min(1, result.ml_confidence ?? 0))
   const phishingBadge = result.ml_prediction === 'phishing'
   const badgeColor = phishingBadge ? 'error' : 'success'
-  const urgency = result?.urgency?.level || 'low'
-  const riskSignals = result?.risk_signals || {}
-  const domainAge = riskSignals?.domain?.age_days
-  const registrarRep = riskSignals?.domain?.registrar_reputation
-  const sslValid = riskSignals?.ssl?.valid
-  const redirectDepth = riskSignals?.redirect?.depth
-  const networkRep = riskSignals?.network?.asn_reputation || riskSignals?.network?.ip_reputation
-  const sensitive = riskSignals?.sensitive_fields || {}
 
   const recommended = phishingBadge
     ? 'Treat as suspicious — avoid entering credentials and verify source.'
@@ -113,25 +105,6 @@ export default function PhishingAnalysis({ result }) {
       </Box>
 
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.04)', my: 1 }} />
-
-      <Box sx={{ mt: 1.5 }}>
-        <Typography variant="caption" sx={{ opacity: 0.8, fontWeight: 700 }}>
-          Risk Signals
-        </Typography>
-        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', mt: 0.75 }}>
-          <Chip size="small" label={`Urgency: ${String(urgency).toUpperCase()}`} color={urgency === 'critical' || urgency === 'high' ? 'error' : urgency === 'medium' ? 'warning' : 'success'} />
-          <Chip size="small" label={`Domain age: ${typeof domainAge === 'number' ? `${domainAge}d` : 'unknown'}`} />
-          <Chip size="small" label={`Registrar: ${registrarRep || 'unknown'}`} />
-          <Chip size="small" label={`SSL: ${sslValid === true ? 'valid' : sslValid === false ? 'invalid' : 'unknown'}`} />
-          <Chip size="small" label={`Redirects: ${typeof redirectDepth === 'number' ? redirectDepth : 'n/a'}`} />
-          <Chip size="small" label={`Network: ${networkRep || 'unknown'}`} />
-        </Stack>
-        {(sensitive?.has_password_field || sensitive?.has_payment_indicator) && (
-          <Typography variant="body2" color="warning.main" sx={{ mt: 1 }}>
-            Sensitive fields detected (password/payment). Treat this page with extra caution.
-          </Typography>
-        )}
-      </Box>
 
       {/* AI Insight */}
       <Box sx={{ mt: 1 }}>

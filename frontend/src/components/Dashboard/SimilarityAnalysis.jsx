@@ -27,7 +27,12 @@ export default function SimilarityAnalysis({ simResult, simLoading, simError }) 
   const score = result?.score ?? null
   const details = result?.details ?? {}
   const assessment = result?.assessment || details?.assessment || null
-  const confidence = typeof result?.confidence === 'number' ? result.confidence : details?.confidence
+  const confidence =
+    typeof result?.confidence === 'number'
+      ? result.confidence
+      : typeof details?.confidence === 'number'
+        ? details.confidence
+        : null
   const ocr = details?.ocr ?? null
 
   const simErrorMessage =
@@ -38,7 +43,7 @@ export default function SimilarityAnalysis({ simResult, simLoading, simError }) 
   // Ensure score is a number and round to 2 decimals to avoid floating point issues
   const numericScore = score !== null ? Number(Number(score).toFixed(2)) : null;
 
-  // Unify thresholds for fallback level and progress bar color
+  // Unify thresholds for level and progress bar color
   const level = numericScore == null
     ? null
     : numericScore >= 0.9
@@ -56,7 +61,12 @@ export default function SimilarityAnalysis({ simResult, simLoading, simError }) 
   const userSrc = result?.user_screenshot_url || buildStaticAssetUrl('user', userFile)
   const breakdownKeys = ['image', 'color', 'text', 'structure']
   const riskLevel = (assessment?.risk_level || '').toLowerCase()
-  const riskChipLabel = assessment?.risk_level ? `Risk: ${assessment.risk_level}` : null
+  const riskChipColor =
+    riskLevel === 'critical' || riskLevel === 'high'
+      ? 'error'
+      : riskLevel === 'medium'
+        ? 'warning'
+        : 'success'
 
   return (
     <Paper
@@ -85,11 +95,11 @@ export default function SimilarityAnalysis({ simResult, simLoading, simError }) 
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {riskChipLabel && (
+          {assessment?.risk_level && (
             <Chip
-              label={riskChipLabel}
+              label={`Risk: ${String(assessment.risk_level).toUpperCase()}`}
               size="small"
-              color={riskLevel === 'critical' || riskLevel === 'high' ? 'error' : riskLevel === 'medium' ? 'warning' : 'success'}
+              color={riskChipColor}
             />
           )}
           <Chip
@@ -122,16 +132,24 @@ export default function SimilarityAnalysis({ simResult, simLoading, simError }) 
         {numericScore !== null && (
           <Box>
             {assessment?.headline && (
-              <Box sx={{ mb: 1.25 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{assessment.headline}</Typography>
-                {assessment?.summary && <Typography variant="body2" sx={{ opacity: 0.85 }}>{assessment.summary}</Typography>}
+              <Box sx={{ mb: 1.5 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                  {assessment.headline}
+                </Typography>
+                {assessment?.summary && (
+                  <Typography variant="body2" sx={{ opacity: 0.86 }}>
+                    {assessment.summary}
+                  </Typography>
+                )}
                 <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                  {assessment?.domain_alignment === false
-                    ? 'Domain-brand alignment: mismatch'
-                    : assessment?.domain_alignment === true
-                      ? 'Domain-brand alignment: matched'
-                      : 'Domain-brand alignment: not available'}
-                  {typeof confidence === 'number' && ` | Similarity confidence: ${Math.round(confidence * 100)}%`}
+                  Domain alignment: {
+                    assessment?.domain_alignment === true
+                      ? 'matched'
+                      : assessment?.domain_alignment === false
+                        ? 'mismatch'
+                        : 'not available'
+                  }
+                  {confidence !== null && ` | Confidence: ${Math.round(confidence * 100)}%`}
                 </Typography>
               </Box>
             )}
@@ -169,10 +187,10 @@ export default function SimilarityAnalysis({ simResult, simLoading, simError }) 
                 <Typography variant="body2" sx={{ mt:1, opacity: 0.85 }}>
                   {assessment?.summary || (
                     <>
-                      {level === 'Legit' && '✅ This is likely the original brand website (very high similarity).'}
-                      {level === 'High' && '⚠️ High resemblance — may be impersonating a brand.'}
-                      {level === 'Moderate' && '🔶 Moderate resemblance — partial match detected.'}
-                      {level === 'Low' && '✅ Low resemblance — unlikely to be impersonation.'}
+                      {level === 'Legit' && '✅ Very high resemblance to known brand assets.'}
+                      {level === 'High' && '⚠️ High resemblance — possible impersonation depending on domain context.'}
+                      {level === 'Moderate' && '🔶 Moderate resemblance — investigate with additional checks.'}
+                      {level === 'Low' && '✅ Low resemblance — unlikely to be direct brand impersonation.'}
                     </>
                   )}
                 </Typography>
@@ -189,7 +207,7 @@ export default function SimilarityAnalysis({ simResult, simLoading, simError }) 
             </Typography>
             <Grid container spacing={2}>
               {breakdownKeys.map((k)=> (
-                <Grid item xs={12} sm={4} key={k}>
+                <Grid item xs={12} sm={6} md={3} key={k}>
                   <Paper
                     sx={{
                       p: 2,

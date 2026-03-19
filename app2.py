@@ -4,11 +4,8 @@ import json
 import re
 import pickle
 import pandas as pd
+import shap
 import os
-try:
-    import shap
-except Exception:
-    shap = None
 import socket
 import ssl
 import ipaddress
@@ -554,17 +551,14 @@ def classify_content(url):
     print(f"[DEBUG] ML phishing_prob={phishing_prob:.4f}, legitimacy_conf={legitimacy_conf:.4f}, ml_pred={ml_pred}")
 
     # SHAP explanations
-    if shap is None:
+    try:
+        explainer = shap.TreeExplainer(lgbm_model)
+        shap_values = explainer.shap_values(X_scaled)
+        shap_array = shap_values[1] if isinstance(shap_values, list) else shap_values
+        ml_explanations = format_shap_explanations(features_list, shap_array, ml_pred)
+    except Exception as e:
+        print(f"[WARN] SHAP explanation failed: {e}")
         ml_explanations = []
-    else:
-        try:
-            explainer = shap.TreeExplainer(lgbm_model)
-            shap_values = explainer.shap_values(X_scaled)
-            shap_array = shap_values[1] if isinstance(shap_values, list) else shap_values
-            ml_explanations = format_shap_explanations(features_list, shap_array, ml_pred)
-        except Exception as e:
-            print(f"[WARN] SHAP explanation failed: {e}")
-            ml_explanations = []
 
     # Step 4: LLM prediction (with fallback)
     llm_result = None

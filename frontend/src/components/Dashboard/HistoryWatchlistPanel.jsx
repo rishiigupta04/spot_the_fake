@@ -18,19 +18,9 @@ const getHostname = (value) => {
   }
 }
 
-export default function HistoryWatchlistPanel({ history, setHistory, watchlist, setWatchlist }) {
+export default function HistoryWatchlistPanel({ history, watchlist, setWatchlist }) {
   const [query, setQuery] = useState('')
   const [watchInput, setWatchInput] = useState('')
-  const [clearAlertsBefore, setClearAlertsBefore] = useState(null)
-
-  const getSeverity = (entry, impersonationLikely) => {
-    const urgency = String(entry?.urgency || '').toLowerCase()
-    const verdict = String(entry?.verdict || '').toLowerCase()
-    if (impersonationLikely || urgency === 'critical') return 'critical'
-    if (urgency === 'high' || verdict === 'phishing') return 'high'
-    if (urgency === 'medium') return 'medium'
-    return 'low'
-  }
 
   const filteredHistory = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -52,7 +42,6 @@ export default function HistoryWatchlistPanel({ history, setHistory, watchlist, 
     if (!watchlist.length || !history.length) return []
 
     const items = []
-    const seen = new Set()
     for (const entry of history) {
       const host = getHostname(entry.url)
       const brand = (entry.brand || '').toLowerCase()
@@ -67,16 +56,10 @@ export default function HistoryWatchlistPanel({ history, setHistory, watchlist, 
         const suspicious = verdict === 'phishing' || urgency === 'high' || urgency === 'critical'
 
         if (mentionsWatchedBrand && (impersonationLikely || suspicious)) {
-          const dedupeKey = `${needle}|${entry.url}|${entry.verdict}|${entry.urgency}|${Math.round(sim * 100)}`
-          if (seen.has(dedupeKey)) continue
-          seen.add(dedupeKey)
-
-          const severity = getSeverity(entry, impersonationLikely)
           items.push({
             id: `${entry.id}-${needle}`,
             watch: watched,
             url: entry.url,
-            severity,
             reason: impersonationLikely
               ? `Potential impersonation (${Math.round(sim * 100)}% similarity)`
               : `Flagged as ${entry.verdict || 'suspicious'} with ${entry.urgency || 'unknown'} urgency`,
@@ -91,13 +74,6 @@ export default function HistoryWatchlistPanel({ history, setHistory, watchlist, 
     return items
   }, [history, watchlist])
 
-  const visibleAlerts = useMemo(() => {
-    return alerts.filter((a) => {
-      if (!clearAlertsBefore) return true
-      return new Date(a.timestamp).getTime() > clearAlertsBefore
-    })
-  }, [alerts, clearAlertsBefore])
-
   const addWatch = () => {
     const value = watchInput.trim().toLowerCase()
     if (!value) return
@@ -108,12 +84,6 @@ export default function HistoryWatchlistPanel({ history, setHistory, watchlist, 
 
   const removeWatch = (target) => {
     setWatchlist((prev) => prev.filter((item) => item !== target))
-  }
-
-  const severityChipColor = (severity) => {
-    if (severity === 'critical' || severity === 'high') return 'error'
-    if (severity === 'medium') return 'warning'
-    return 'success'
   }
 
   return (
@@ -142,32 +112,21 @@ export default function HistoryWatchlistPanel({ history, setHistory, watchlist, 
 
       <Divider sx={{ mb: 2 }} />
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, flex: 1 }}>Watch Alerts</Typography>
-        <Button size="small" variant="outlined" onClick={() => setClearAlertsBefore(Date.now())}>
-          Clear Alerts
-        </Button>
-      </Box>
+      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Watch Alerts</Typography>
       <Box sx={{ mt: 1, mb: 2 }}>
-        {visibleAlerts.slice(0, 8).map((alert) => (
+        {alerts.slice(0, 8).map((alert) => (
           <Paper key={alert.id} sx={{ p: 1.25, mb: 1, bgcolor: '#2d1a1a' }} elevation={0}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-              <Typography variant="body2" sx={{ fontWeight: 700, flex: 1 }}>[{alert.watch}] {alert.reason}</Typography>
-              <Chip size="small" label={alert.severity} color={severityChipColor(alert.severity)} />
-            </Box>
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>[{alert.watch}] {alert.reason}</Typography>
             <Typography variant="caption" sx={{ opacity: 0.85 }}>{alert.url}</Typography>
           </Paper>
         ))}
-        {!visibleAlerts.length && <Typography variant="body2" sx={{ opacity: 0.75 }}>No active alerts.</Typography>}
+        {!alerts.length && <Typography variant="body2" sx={{ opacity: 0.75 }}>No active alerts.</Typography>}
       </Box>
 
       <Divider sx={{ mb: 2 }} />
 
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, flex: 1 }}>Previous Scans</Typography>
-        <Button size="small" color="error" variant="outlined" onClick={() => setHistory([])}>
-          Clear History
-        </Button>
         <TextField
           size="small"
           label="Search history"
@@ -180,16 +139,9 @@ export default function HistoryWatchlistPanel({ history, setHistory, watchlist, 
       <Box sx={{ maxHeight: 320, overflowY: 'auto' }}>
         {filteredHistory.slice(0, 100).map((entry) => (
           <Paper key={entry.id} sx={{ p: 1.25, mb: 1, bgcolor: 'rgba(255,255,255,0.02)' }} elevation={0}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.25 }}>
-              <Typography variant="body2" sx={{ fontWeight: 700, flex: 1 }}>
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>
               {entry.verdict || 'unknown'} | urgency: {entry.urgency || 'low'} | similarity: {entry.similarityScore != null ? `${Math.round(entry.similarityScore * 100)}%` : 'n/a'}
-              </Typography>
-              <Chip
-                size="small"
-                label={entry.urgency || 'low'}
-                color={severityChipColor(entry.urgency || 'low')}
-              />
-            </Box>
+            </Typography>
             <Typography variant="caption" sx={{ display: 'block', opacity: 0.85 }}>{entry.url}</Typography>
             <Typography variant="caption" sx={{ opacity: 0.7 }}>{new Date(entry.timestamp).toLocaleString()}</Typography>
           </Paper>
