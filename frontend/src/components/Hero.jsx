@@ -4,7 +4,19 @@ import { motion } from 'framer-motion'
 
 export default function Hero({ onCta }) {
   return (
-    <Box sx={{ py: 8, background: 'linear-gradient(180deg, rgba(7,17,38,1) 0%, rgba(15,23,36,1) 100%)', color: '#e6eef8' }}>
+    <Box
+      sx={{
+        py: 8,
+        minHeight: { xs: '100vh', md: '100vh' },
+        display: 'flex',
+        alignItems: 'center',
+        background: 'linear-gradient(180deg, rgba(7,17,38,1) 0%, rgba(15,23,36,1) 100%)',
+        color: '#e6eef8',
+        '@supports (height: 100dvh)': {
+          minHeight: { xs: '100dvh', md: '100dvh' },
+        },
+      }}
+    >
       <Box sx={{ maxWidth: 1200, mx: 'auto', display: 'flex', alignItems: 'center', gap: 4, px: 3, flexWrap: 'wrap' }}>
 
         {/* Left Text Content */}

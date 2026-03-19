@@ -1,9 +1,13 @@
 from PIL import Image
-import imagehash, cv2, numpy as np, pytesseract, re, os, time, base64, matplotlib.pyplot as plt
+import imagehash, cv2, numpy as np, pytesseract, re, os, time, base64
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+try:
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+except Exception:
+    webdriver = None
+    Options = None
 from rapidfuzz import process
 from urllib.parse import urlparse
 import socket
@@ -194,6 +198,10 @@ def check_http(url: str, timeout=6) -> bool:
 # ---------- Selenium Screenshot ----------
 def capture_viewport_screenshot(url, save_path, width=1280, height=720, retries=1):
     """Viewport screenshot with timeouts + retries. Returns save_path or None."""
+    if webdriver is None or Options is None:
+        print("[WARN] Selenium not available in this runtime; screenshot capture skipped.")
+        return None
+
     options = Options()
     options.add_argument("--headless=new")
     options.add_argument("--disable-gpu")

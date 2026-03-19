@@ -39,8 +39,9 @@ Request/response notes:
   - `result.urgency` (low/medium/high/critical + reasons)
 
 Notes / gotchas:
-- The backend imports your existing app1.py and app2.py to reuse logic. If those files depend on packages not installed (selenium, groq, tesseract), /health will show import errors.
-- Selenium requires Chrome and a compatible chromedriver or Selenium Manager.
+- The backend imports your existing app1.py and app2.py to reuse logic.
+- Selenium and SHAP are optional in the current runtime profile (missing packages degrade features gracefully).
+- If Selenium is unavailable, URL screenshot capture is skipped; `/similarity-upload` remains the reliable path.
 - Set `GROQ_API_KEY` in your environment if you want LLM analysis.
 - You can also create a project-root `.env` file (see `.env.example`) and the backend will load it automatically.
 - Optional: set `GROQ_MODEL` to override the default model.

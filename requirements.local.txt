@@ -1,0 +1,18 @@
+# Local/full development requirements (Streamlit + explainability tooling)
+streamlit
+selenium
+scikit-learn
+lightgbm
+shap
+opencv-python
+Pillow
+imagehash
+pytesseract
+beautifulsoup4
+rapidfuzz
+requests
+groq
+python-dotenv
+matplotlib
+numpy
+pandas

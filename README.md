@@ -249,6 +249,7 @@ vercel --prod
 ### 3) Set environment variables in Vercel Project Settings
 - `GROQ_API_KEY` = your Groq key
 - `GROQ_MODEL` = optional model override (example: `llama-3.1-8b-instant`)
+- `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` (optional, for durable screenshot URLs)
 
 ### 4) Verify endpoints after deploy
 - `GET /health`
@@ -260,6 +261,7 @@ vercel --prod
 - Uploaded/user screenshots are stored in temp storage (`/tmp`) and are ephemeral.
 - Brand references in `Brands/` are bundled read-only and available for matching.
 - Selenium-based full-page screenshot similarity for remote URLs may be limited in serverless environments; image upload flow (`/similarity-upload`) is the reliable path on Vercel.
+- `requirements.txt` is intentionally lean for serverless limits; full local extras are in `requirements.local.txt`.
 
 ### Why not store runtime images in repo `assets/`?
 - Repo assets are build-time/static files and are read-only in hosted serverless runtimes.
@@ -294,6 +296,9 @@ cd spot-the-fake
 # Install dependencies
 pip install -r requirements.txt
 pip install -r backend/requirements.txt
+
+# Optional: full local stack (Streamlit + SHAP + Selenium)
+# pip install -r requirements.local.txt
 
 # Install frontend dependencies:
 cd frontend
